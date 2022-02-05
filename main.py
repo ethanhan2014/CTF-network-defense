@@ -1,3 +1,5 @@
+#! /usr/bin/python3
+
 ## PCTF project Team 4
 ## Team member: 
 ## Description
@@ -21,6 +23,7 @@ class NetworkTool:
         pass
 
 def main():
+    print("Firewall starting up...")
     NetworkTool().run()
 
 if __name__ == '__main__':
