@@ -80,7 +80,10 @@ class PacketPayloadAnalayzer:
         if word in self.word_dictionary.keys():
             return False
         else:
-            self.word_dictionary[word] = weight
+            weight_to_add = weight
+            if weight is None or weight == 0:
+                weight_to_add = self.dflt_word_weight
+            self.word_dictionary[word] = weight_to_add
             return True
     # end add_word()
 
@@ -108,7 +111,10 @@ class PacketPayloadAnalayzer:
         if syntax_str in self.syntax_dictionary.keys():
             return False
         else:
-            self.syntax_dictionary[syntax_str] = weight
+            weight_to_add = weight
+            if weight is None or weight == 0:
+                weight_to_add = self.dflt_syntax_weight
+            self.syntax_dictionary[syntax_str] = weight_to_add
     # end add_syntax()
 
     """
