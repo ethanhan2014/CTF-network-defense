@@ -5,7 +5,6 @@
 ## Description
 #  Network Defense tool
 ##
-from genericpath import exists
 from scapy.all import *
 
 
@@ -49,7 +48,8 @@ class PacketPayloadAnalayzer:
     #   Takes a dictionary of words and their corresponding weight of suspiciousness
     #   Or creates an empty dictionary if null
     def __init__(self, words: dict, syntax: dict):
-        self.words = words
+        self.words  = words
+        self.syntax = syntax
     
     # Method: add_word
     # Description:
@@ -63,7 +63,7 @@ class PacketPayloadAnalayzer:
 
     # Method: remove_word
     # Description:
-    #   Adds a word to the library if it does not already exist
+    #   Removes word from library if it exists
     def remove_word(self, word: str) -> bool:
         if word in self.words:
             self.words.pop(word)
@@ -79,6 +79,11 @@ class PacketPayloadAnalayzer:
     #   found which can be used for debugging purposes
     def analyze(self, payload: str) -> tuple:
         return 0, list()
+
+def run_packet_payload_analyzer_tests() -> bool:
+    analyzer = PacketPayloadAnalayzer()
+    analyzer.analyze("")
+    return True
 
 # end class PacketPayloadAnalayzer
 
