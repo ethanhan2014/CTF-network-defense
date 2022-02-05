@@ -49,7 +49,7 @@ class PacketPayloadAnalayzer:
                 dflt_word_weight: int,   # Default weight to associate with a word if not specified when word is added
                 dflt_syntax_weight: int, # Default weight to associate with a syntax if not specified when syntax is added
                 words: dict, # Dictionary of black listed words to filter through: ( Key: string word, Value: int weight )
-                syntax: dict # Dictionary of syntax to break up an expression; can also be used to filter through ( Key: string syntax, Value: int weight )
+                syntax: dict # Dictionary of syntax to break up an expression; can also be used to filter through ( Key: str syntax, Value: int weight )
                 ):
         self.word_dictionary    = words.copy()
         self.syntax_dictionary  = syntax.copy()
@@ -67,7 +67,31 @@ class PacketPayloadAnalayzer:
         found which can be used for debugging purposes
     """
     def analyze(self, payload: str) -> tuple:
-        return 0, list()
+        total_suspicious_weight = 0
+        black_list_words_found  = list()
+        
+        # Count syntax:
+        i = 0
+        payload_len = len(payload)
+        while i < payload_len:
+            syntax_check = payload[i]
+            if syntax_check in self.syntax_dictionary.keys():
+                total_suspicious_weight += self.syntax_dictionary[syntax_check]
+                black_list_words_found.append(syntax_check)
+            i += 1
+
+        # Tokenize string:
+        tokens = list([payload])
+        for syntax in self.syntax_dictionary.keys():
+            tokens = list(map(str.split(sep=syntax), tokens))
+        
+        # Count black listed words
+        for token in tokens:
+            if token in self.word_dictionary.keys():
+                total_suspicious_weight += self.word_dictionary[token]
+                black_list_words_found.append(token)
+
+        return total_suspicious_weight, black_list_words_found
     # end analyze()
 
     """
@@ -78,6 +102,9 @@ class PacketPayloadAnalayzer:
     """
     def add_word(self, word: str, weight: int) -> bool:
         if word in self.word_dictionary.keys():
+            return False
+        # Force syntax to be 1 character
+        elif (len(word) != 1):
             return False
         else:
             weight_to_add = weight
