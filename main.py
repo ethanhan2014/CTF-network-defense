@@ -20,6 +20,15 @@ class NetworkTool:
     def pkt_callback(self, pkt):
         pass
 
+    @staticmethod
+    def add_rule(chain, protocol, flags, action):
+        rule = iptc.Rule()
+        rule.protocol = protocol
+        match = iptc.Match(rule, protocol)
+        match.tcp_flags = flags
+        rule.target = iptc.Target(rule, action)
+        chain.insert_rule(rule)
+
     '''
         Method: set up whitelist firewall policy
         iptables -P INPUT DROP
@@ -43,83 +52,36 @@ class NetworkTool:
                     rule.add_match(match)
                     rule.target = iptc.Target(rule, "ACCEPT")
                     chain.insert_rule(rule)
+
                 #drop unknown pkt
                 rule = iptc.Rule()
                 rule.protocol = 'tcp'
                 match = iptc.Match(rule, 'tcp')
                 match.tcp_flags = ['FIN,SYN,RST,ACK','!SYN']
-                match = iptc.Match(rule, "state")
+                match = iptc.Match(rule, "state")  # TODO: this is overwriting what is happening in line 59. Did you mean to add 2 rules here instead of just one?
                 match.state = "NEW"
                 rule.add_match(match)
                 rule.target = iptc.Target(rule, "DROP")
                 chain.insert_rule(rule)
                 '''
                 #Filter abnormal packets
-iptables -A INPUT -p tcp --tcp-flags ALL FIN,URG,PSH -j DROP
-iptables -A INPUT -p tcp --tcp-flags ALL NONE -j DROP 
-iptables -A INPUT -p tcp --tcp-flags ALL SYN,RST,ACK,FIN,URG -j DROP
-iptables -A INPUT -p tcp --tcp-flags ALL SYN,FIN,RST -j DROP
-iptables -A INPUT -p tcp --tcp-flags ALL SYN,FIN,PSH -j DROP
-iptables -A INPUT -p tcp --tcp-flags ALL SYN,FIN,RST,PSH -j DROP
-iptables -A INPUT -p tcp --tcp-flags SYN,RST SYN,RST -j DROP 
-iptables -A INPUT -p tcp --tcp-flags SYN,FIN SYN,FIN -j DROP
+                iptables -A INPUT -p tcp --tcp-flags ALL FIN,URG,PSH -j DROP
+                iptables -A INPUT -p tcp --tcp-flags ALL NONE -j DROP 
+                iptables -A INPUT -p tcp --tcp-flags ALL SYN,RST,ACK,FIN,URG -j DROP
+                iptables -A INPUT -p tcp --tcp-flags ALL SYN,FIN,RST -j DROP
+                iptables -A INPUT -p tcp --tcp-flags ALL SYN,FIN,PSH -j DROP
+                iptables -A INPUT -p tcp --tcp-flags ALL SYN,FIN,RST,PSH -j DROP
+                iptables -A INPUT -p tcp --tcp-flags SYN,RST SYN,RST -j DROP 
+                iptables -A INPUT -p tcp --tcp-flags SYN,FIN SYN,FIN -j DROP
                 '''
-                rule = iptc.Rule()
-                rule.protocol = 'tcp'
-                match = iptc.Match(rule, 'tcp')
-                match.tcp_flags = ['ALL','FIN,URG,PSH']
-                rule.target = iptc.Target(rule, "DROP")
-                chain.insert_rule(rule)
-
-                rule = iptc.Rule()
-                rule.protocol = 'tcp'
-                match = iptc.Match(rule, 'tcp')
-                match.tcp_flags = ['ALL','NONE']
-                rule.target = iptc.Target(rule, "DROP")
-                chain.insert_rule(rule)
-
-                rule = iptc.Rule()
-                rule.protocol = 'tcp'
-                match = iptc.Match(rule, 'tcp')
-                match.tcp_flags = ['ALL','SYN,RST,ACK,FIN,URG']
-                rule.target = iptc.Target(rule, "DROP")
-                chain.insert_rule(rule)
-
-                rule = iptc.Rule()
-                rule.protocol = 'tcp'
-                match = iptc.Match(rule, 'tcp')
-                match.tcp_flags = ['ALL','SYN,FIN,RST']
-                rule.target = iptc.Target(rule, "DROP")
-                chain.insert_rule(rule)
-
-                rule = iptc.Rule()
-                rule.protocol = 'tcp'
-                match = iptc.Match(rule, 'tcp')
-                match.tcp_flags = ['ALL','SYN,FIN,RST,PSH']
-                rule.target = iptc.Target(rule, "DROP")
-                chain.insert_rule(rule)
-
-                rule = iptc.Rule()
-                rule.protocol = 'tcp'
-                match = iptc.Match(rule, 'tcp')
-                match.tcp_flags = ['ALL','SYN,FIN,PSH']
-                rule.target = iptc.Target(rule, "DROP")
-                chain.insert_rule(rule)
-
-                rule = iptc.Rule()
-                rule.protocol = 'tcp'
-                match = iptc.Match(rule, 'tcp')
-                match.tcp_flags = ['SYN,RST','SYN,RST']
-                rule.target = iptc.Target(rule, "DROP")
-                chain.insert_rule(rule)
-
-                rule = iptc.Rule()
-                rule.protocol = 'tcp'
-                match = iptc.Match(rule, 'tcp')
-                match.tcp_flags = ['SYN,FIN','SYN,FIN']
-                rule.target = iptc.Target(rule, "DROP")
-                chain.insert_rule(rule)
-
+                self.add_rule(chain, protocol='tcp', flags=['ALL','FIN,URG,PSH'], action="DROP")
+                self.add_rule(chain, protocol='tcp', flags=['ALL','NONE'], action="DROP")
+                self.add_rule(chain, protocol='tcp', flags=['ALL','SYN,RST,ACK,FIN,URG'], action="DROP")
+                self.add_rule(chain, protocol='tcp', flags=['ALL','SYN,FIN,RST'], action="DROP")
+                self.add_rule(chain, protocol='tcp', flags=['ALL','SYN,FIN,RST,PSH'], action="DROP")
+                self.add_rule(chain, protocol='tcp', flags=['ALL','SYN,FIN,PSH'], action="DROP")
+                self.add_rule(chain, protocol='tcp', flags=['SYN,RST','SYN,RST'], action="DROP")
+                self.add_rule(chain, protocol='tcp', flags=['SYN,FIN','SYN,FIN'], action="DROP")
 
             elif chain.name == 'OUTPUT':
                 for tcp_port in self.allow_tcp_ports:
@@ -178,12 +140,12 @@ Descripton:
 class PacketPayloadAnalayzer:
     # constructor
     def __init__(
-                self, 
-                dflt_word_weight: int,   # Default weight to associate with a word if not specified when word is added
-                dflt_syntax_weight: int, # Default weight to associate with a syntax if not specified when syntax is added
-                words: dict, # Dictionary of black listed words to filter through: ( Key: string word, Value: int weight )
-                syntax: dict # Dictionary of syntax to break up an expression; can also be used to filter through ( Key: str syntax, Value: int weight )
-                ):
+        self,
+        dflt_word_weight: int,   # Default weight to associate with a word if not specified when word is added
+        dflt_syntax_weight: int, # Default weight to associate with a syntax if not specified when syntax is added
+        words: dict, # Dictionary of black listed words to filter through: ( Key: string word, Value: int weight )
+        syntax: dict # Dictionary of syntax to break up an expression; can also be used to filter through ( Key: str syntax, Value: int weight )
+    ):
         self.word_dictionary    = words.copy()
         self.syntax_dictionary  = syntax.copy()
         self.dflt_word_weight   = dflt_word_weight
@@ -237,7 +199,7 @@ class PacketPayloadAnalayzer:
         if word in self.word_dictionary.keys():
             return False
         # Force syntax to be 1 character
-        elif (len(word) != 1):
+        elif len(word) != 1:
             return False
         else:
             weight_to_add = weight
@@ -302,4 +264,3 @@ def run_packet_payload_analyzer_tests() -> bool:
 
 if __name__ == '__main__':
     main()
-
