@@ -58,7 +58,9 @@ class NetworkTool:
                 rule.protocol = 'tcp'
                 match = iptc.Match(rule, 'tcp')
                 match.tcp_flags = ['FIN,SYN,RST,ACK','!SYN']
-                match = iptc.Match(rule, "state")  # TODO: this is overwriting what is happening in line 59. Did you mean to add 2 rules here instead of just one?
+                rule.add_match(match)  # I believe there should be rule.add_match here. Yana
+                match = iptc.Match(rule, "state")
+                # TODO: this is overwriting what is happening in line 59. Did you mean to add 2 rules here instead of just one?
                 match.state = "NEW"
                 rule.add_match(match)
                 rule.target = iptc.Target(rule, "DROP")
@@ -95,7 +97,6 @@ class NetworkTool:
                     rule.add_match(match)
                     rule.target = iptc.Target(rule, "ACCEPT")
                     chain.insert_rule(rule)
-                
 
             elif chain.name == 'FORWARD':
             #drop unknown pkt
