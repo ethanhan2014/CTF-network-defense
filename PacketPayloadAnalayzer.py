@@ -49,21 +49,31 @@ class PacketPayloadAnalyzer:
         payload_len = len(payload)
         while i < payload_len:
             syntax_check = payload[i]
-            if syntax_check in self.syntax_dictionary.keys():
+            if syntax_check in self.syntax_dictionary.keys() and self.syntax_dictionary[syntax_check] > 0:
                 total_suspicious_weight += self.syntax_dictionary[syntax_check]
-                black_list_words_found.append(syntax_check)
+                # only add unique values
+                if syntax_check not in black_list_words_found:
+                    black_list_words_found.append(syntax_check)
             i += 1
 
         # Tokenize string:
         tokens = list([payload])
         for syntax in self.syntax_dictionary.keys():
-            tokens = list(map(str.split(sep=syntax), tokens))
+            new_list = list()
+            for token in tokens:
+                split_list = str(token).split(sep=syntax)
+                for split_item in split_list:
+                    if split_item != '':
+                        new_list.append(str(split_item))
+                
+            tokens = new_list
         
         # Count black listed words
         for token in tokens:
-            if token in self.word_dictionary.keys():
-                total_suspicious_weight += self.word_dictionary[token]
-                black_list_words_found.append(token)
+            if str(token) in self.word_dictionary.keys():
+                total_suspicious_weight += self.word_dictionary[str(token)]
+                if str(token) not in black_list_words_found:
+                    black_list_words_found.append(str(token))
 
         return total_suspicious_weight, black_list_words_found
     # end analyze()
@@ -170,6 +180,7 @@ class PacketPayloadAnalyzer_TestSuite:
         success = self.run_remove_syntax() and success
         success = self.run_add_word() and success
         success = self.run_remove_word() and success
+        success = self.run_analyze() and success
         if success:
             print("Packet Payload Analyzer: All Tests Passed")
         else:
@@ -283,3 +294,41 @@ class PacketPayloadAnalyzer_TestSuite:
             print("FAIL: Remove word test restult")
 
         return success
+
+    """
+    run_analyze()
+    """
+    def run_analyze(self) -> bool:
+        success = True
+        analyzer = PacketPayloadAnalyzer(dflt_word_weight=10, dflt_syntax_weight=0)
+        syntax_dict = { ' ':0, '+':0, '-':0, '.':5,'/':10 }
+        word_dict = { 'bin':10, 'sh':20 }
+        analyzer.load_syntax_dictionary(syntax_dict)
+        analyzer.load_word_dictionary(word_dict)
+
+        test_string = "GET ../../bin/sh"
+        expect_val = 20 + 30 + 10 + 20
+        expect_words = [".","/","bin","sh"]
+        weight, words = analyzer.analyze(test_string)
+        if weight != expect_val:
+            print("Analyze calculated incorrect weight of %d" % (weight))
+            success = False
+
+        if len(words) != len(expect_words):
+            print("Analyzer returned wrong number of words.")
+            print("Words returned:")
+            print(words)
+        else:
+            i = 0
+            while i < len(expect_words):
+                if words[i] != expect_words[i]:
+                    print("Unexpected word %s at %d, expected word %s" % (word[i], i, expect_words[i]) )
+                    success = False
+                i += 1
+        
+        if success:
+            print("PASS: Analyze Test Result")
+        else:
+            print("FAIL: Analyze Test Results")
+        return success
+        
