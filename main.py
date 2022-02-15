@@ -11,10 +11,12 @@ Description:
 
 from scapy.all import *
 import iptc
+from PacketPayloadAnalayzer import *
 
 def main():
     print("Firewall starting up...")
     NetworkTool().run()
+    #testSuite = PacketPayloadAnalyzer_TestSuite()
 
 if __name__ == '__main__':
     main()
