@@ -181,6 +181,7 @@ class PacketPayloadAnalyzer_TestSuite:
         success = self.run_add_word() and success
         success = self.run_remove_word() and success
         success = self.run_analyze() and success
+        success = self.run_analyze2() and success
         if success:
             print("Packet Payload Analyzer: All Tests Passed")
         else:
@@ -322,13 +323,50 @@ class PacketPayloadAnalyzer_TestSuite:
             i = 0
             while i < len(expect_words):
                 if words[i] != expect_words[i]:
-                    print("Unexpected word %s at %d, expected word %s" % (word[i], i, expect_words[i]) )
+                    print("Unexpected word %s at %d, expected word %s" % (words[i], i, expect_words[i]) )
                     success = False
                 i += 1
         
         if success:
-            print("PASS: Analyze Test Result")
+            print("PASS: Analyze Test Results")
         else:
             print("FAIL: Analyze Test Results")
+        return success
+
+    """
+    run_analyze2()
+    """
+    def run_analyze2(self) -> bool:
+        success = True
+        analyzer = PacketPayloadAnalyzer(dflt_word_weight=10, dflt_syntax_weight=0)
+        syntax_dict = { ' ':0, '+':0, '-':0, '.':5,'/':10 }
+        word_dict = { 'bin':10, 'sh':20 }
+        analyzer.load_syntax_dictionary(syntax_dict)
+        analyzer.load_word_dictionary(word_dict)
+
+        test_string = "GET normalFileAccess/index.html"
+        expect_val = 10 + 5
+        expect_words = ["/","."]
+        weight, words = analyzer.analyze(test_string)
+        if weight != expect_val:
+            print("Analyze calculated incorrect weight of %d" % (weight))
+            success = False
+
+        if len(words) != len(expect_words):
+            print("Analyzer returned wrong number of words.")
+            print("Words returned:")
+            print(words)
+        else:
+            i = 0
+            while i < len(expect_words):
+                if words[i] != expect_words[i]:
+                    print("Unexpected word %s at %d, expected word %s" % (words[i], i, expect_words[i]) )
+                    success = False
+                i += 1
+        
+        if success:
+            print("PASS: Analyze Test 2 Results")
+        else:
+            print("FAIL: Analyze Test 2 Results")
         return success
         
