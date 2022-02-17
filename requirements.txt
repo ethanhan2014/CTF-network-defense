@@ -1,2 +1,5 @@
 scapy==2.4.5
 python-iptables==1.0.0
+slack-sdk==3.14.1
+python-dotenv~=0.19.2
+aiohttp==3.8.1
