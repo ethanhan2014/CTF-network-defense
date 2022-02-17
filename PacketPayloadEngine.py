@@ -8,7 +8,10 @@ class PacketPayloadEngine:
         self.dflt_syntax_weight       = dflt_syntax_weight
 
         # Setup http method get analyzer
-        self.http_get_analyzer = self.setup_analyzer("http_get_blacklisted_words.csv")
+        self.http_get_analyzer = self.setup_analyzer("http_method_get_blacklist_rules.csv")
+
+        # Setup sql analyzer
+        self.sql_analyzer      = self.setup_analyzer("sql_blacklist_rules.csv")
     
     """
     Method: Validate Payload
@@ -74,27 +77,30 @@ class PacketPayloadEngine:
         try:
             f = open(filename)
             file_reader = csv.reader(f)
-            header_row = next(csv_file)
+            header_row  = next(file_reader)
             rows = []
-            for row in csv_file:
+            for row in file_reader:
                 rows.append(row)
-            # Parse each row
+                # Parse each row
+            word_column = 0
+            syntax_column = 2
             i = 0
             while i < len(rows):
-                row_len = len(rows[i])
+                if len(rows[i]) > 4:
+                    # Parse Words
+                    if rows[i][word_column] != '':
+                        if rows[i][word_column + 1] != '':
+                            blacklist_words[rows[i][word_column]] = int(rows[i][word_column + 1])
+                            
+                        else:
+                            blacklist_words[rows[i][word_column]] = 0
 
-                if row_len == 1:
-                    # Add word with weight 0
-                    blacklist_words[rows[i][0]] = 0
-                elif row_len > 1:
-                    # Add word with set weight
-                    blacklist_words[rows[i][0]] = int(rows[i][1])
-                    if row_len == 3:
-                        # Add syntax with weight 0
-                        blacklist_syntax[row[i][2]] = 0
-                    elif row_len > 3:
-                        # Add syntax with set weight
-                        blacklist_syntax[row[i][2]] = int(rows[i][3])
+                    # Parse Syntax
+                    if rows[i][syntax_column] != '':
+                        if rows[i][syntax_column + 1] != '':
+                            blacklist_syntax[rows[i][syntax_column]] = int(rows[i][syntax_column + 1])
+                        else:
+                            blacklist_syntax[rows[i][syntax_column]] = 0                    
                 i += 1
             f.close()
         except:
@@ -102,7 +108,7 @@ class PacketPayloadEngine:
             try:
                 f.close()
             except:
-                print("WARNING! File couldn't be opened %s" % (filename))
+                print("WARNING! File couldn't be opened %s" % (filename) )
         
         return blacklist_words, blacklist_syntax
     # end read_csv_blacklist_dictionary()

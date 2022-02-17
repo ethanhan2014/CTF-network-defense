@@ -1,12 +1,12 @@
 ﻿Words,Word_Weight,Syntax,Syntax_Weight,Comments
-bin,, ,0,
-sh,,.,10,File access
-admin,,",",0,
-passwd,,\,10,File access
-password,,/,10,File access
-pass,,+,0,
-shadow,,-,0,
-etc,,?,0,
+bin,10, ,0,
+sh,30,.,10,File access
+admin,50,",",0,
+passwd,10,\,10,File access
+password,10,/,10,File access
+pass,10,+,0,
+shadow,20,-,0,
+etc,10,?,0,
 ,,<,0,
 ,,>,0,
 ,,$,0,
@@ -24,7 +24,7 @@ etc,,?,0,
 ,,},0,
 ,,[,0,
 ,,],0,
-,,"""",0,
+,,",0,
 ,,!,0,
 ,,`,0,
 ,,~,5,Home access?
