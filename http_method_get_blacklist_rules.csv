@@ -1,0 +1,30 @@
+﻿Words,Word_Weight,Syntax,Syntax_Weight,Comments
+bin,, ,0,
+sh,,.,10,File access
+admin,,",",0,
+passwd,,\,10,File access
+password,,/,10,File access
+pass,,+,0,
+shadow,,-,0,
+etc,,?,0,
+,,<,0,
+,,>,0,
+,,$,0,
+,,#,0,
+,,@,0,
+,,(,0,
+,,),0,
+,,*,0,
+,,|,20,Or operator
+,,&,1,Shell code but… also escape character
+,,%,0,
+,,;,20,Shell code maybe
+,,:,0,
+,,{,0,
+,,},0,
+,,[,0,
+,,],0,
+,,"""",0,
+,,!,0,
+,,`,0,
+,,~,5,Home access?
