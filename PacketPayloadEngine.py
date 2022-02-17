@@ -1,4 +1,5 @@
 from PacketPayloadAnalyzer import *
+import csv
 
 class PacketPayloadEngine:
     def __init__(self, weight_to_drop_packet_on, dflt_word_weight, dflt_syntax_weight):
@@ -68,8 +69,42 @@ class PacketPayloadEngine:
             Columb D: Black listed syntax weight
     """
     def read_csv_blacklist_dictionary(self, filename: str) -> tuple:
-        # To Do
-        return dict(), dict()
+        blacklist_words = dict()
+        blacklist_syntax = dict()
+        try:
+            f = open(filename)
+            file_reader = csv.reader(f)
+            header_row = next(csv_file)
+            rows = []
+            for row in csv_file:
+                rows.append(row)
+            # Parse each row
+            i = 0
+            while i < len(rows):
+                row_len = len(rows[i])
+
+                if row_len == 1:
+                    # Add word with weight 0
+                    blacklist_words[rows[i][0]] = 0
+                elif row_len > 1:
+                    # Add word with set weight
+                    blacklist_words[rows[i][0]] = int(rows[i][1])
+                    if row_len == 3:
+                        # Add syntax with weight 0
+                        blacklist_syntax[row[i][2]] = 0
+                    elif row_len > 3:
+                        # Add syntax with set weight
+                        blacklist_syntax[row[i][2]] = int(rows[i][3])
+                i += 1
+            f.close()
+        except:
+            print("WARNING! Failed during parse csv file for %s" % (filename) )
+            try:
+                f.close()
+            except:
+                print("WARNING! File couldn't be opened %s" % (filename))
+        
+        return blacklist_words, blacklist_syntax
     # end read_csv_blacklist_dictionary()
 
     """
