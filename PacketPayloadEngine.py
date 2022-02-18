@@ -60,14 +60,14 @@ class PacketPayloadEngine:
         for line in parser_str_lines:
             header, preprocessed_str = self.preprocess_http_line(line, "%")
             if 'GET' == header:
-                weight, words = self.http_get_analyzer(preprocessed_str)
+                weight, words = self.http_get_analyzer.analyze(preprocessed_str)
                 drop_payload = weight < self.weight_to_drop_packet_on
                 if drop_payload:
                     str_words = str(words)
                     message = "SUSPICOUS PACKET! HTTP GET: Weight = {weight}: Sucpicious packet content: {str_words}"
             elif 'POST' == header:
-                post_weight, post_words = self.http_get_analyzer(preprocessed_str)
-                sql_weight, sql_words   = self.sql_analyzer(preprocessed_str)
+                post_weight, post_words = self.http_get_analyzer.analyze(preprocessed_str)
+                sql_weight, sql_words   = self.sql_analyzer.analyze(preprocessed_str)
                 drop_payload = ( post_weight + sql_weight ) < self.weight_to_drop_packet_on
                 str_words = str(post_words) + str(sql_words)
                 message = "SUSPICOUS PACKET! HTTP POST: Post Weight, SQL Weight = {post_weight},{sql_weight}: content: {str_words}"
@@ -87,7 +87,7 @@ class PacketPayloadEngine:
         words = unparsed_line.split(" ")
         if words[0] == 'GET' or words[0] == 'POST':
             method = words[0]
-            if len(words > 1):
+            if len(words) > 1:
                 # Parse Special Characters
                 i = 0
                 processed_line = ""
@@ -240,7 +240,8 @@ class PacketPayloadEngine:
 class PacketPayloadEngine_TestSuite:
     def __init__(self):
         success = True
-        success = self.run_simple_message_test() and success
+        #success = self.run_simple_message_test() and success
+        success = self.run_test_http_message_one_line() and success
         if success:
             print("Packet Payload Engine: All Tests Passed.")
         else:
@@ -259,3 +260,21 @@ class PacketPayloadEngine_TestSuite:
         except:
             success = False
         return success
+
+    def run_test_http_message_one_line(self) -> bool:
+        success = True
+        test_str = "GET /var/server/password.txt?user=admin HTTP/1.1"
+        expect_test_str_weight = 10*4 + 10 + 50 + 10
+        engine = PacketPayloadEngine(weight_to_drop_packet_on=100, dflt_word_weight=10, dflt_syntax_weight=0)
+        weight, message = engine.validate_http_payload(test_str)
+        if expect_test_str_weight != weight:
+            success = False
+            print("Expected weight: %d, but recieved %d" % (expect_test_str_weight, weight))
+        
+        if success:
+            print("PASS: Test http message one line")
+        else:
+            print("FAIL: Test http message one line")
+        
+        return success
+    
