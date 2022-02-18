@@ -207,6 +207,7 @@ class PacketPayloadEngine:
 
                     # Parse Syntax
                     if rows[i][syntax_column] != '':
+                        print(rows[i][syntax_column])
                         if rows[i][syntax_column + 1] != '':
                             blacklist_syntax[rows[i][syntax_column]] = int(rows[i][syntax_column + 1])
                         else:
@@ -241,6 +242,7 @@ class PacketPayloadEngine_TestSuite:
     def __init__(self):
         success = True
         #success = self.run_simple_message_test() and success
+        success = self.run_test_csv_analyzer() and success
         success = self.run_test_http_message_one_line() and success
         if success:
             print("Packet Payload Engine: All Tests Passed.")
@@ -259,6 +261,24 @@ class PacketPayloadEngine_TestSuite:
             bot.alert_channel(message=slack_message)
         except:
             success = False
+        return success
+
+    def run_test_csv_analyzer(self) -> bool:
+        success = True
+        test_str = "GET /var/server/password.txt?user=admin HTTP/1.1"
+        expect_test_str_weight = 10*4 + 10 + 50 + 10
+        engine = PacketPayloadEngine(weight_to_drop_packet_on=100, dflt_word_weight=10, dflt_syntax_weight=0)
+        weight, words = engine.http_get_analyzer.analyze(test_str)
+        if expect_test_str_weight != weight:
+            success = False
+            print("Expected weight: %d, but recieved %d" % (expect_test_str_weight, weight))
+            print("Found words: %s" % str(words))
+        
+        if success:
+            print("PASS: Test CSV analyzer")
+        else:
+            print("FAIL: Test CSV analyzer")
+        
         return success
 
     def run_test_http_message_one_line(self) -> bool:
