@@ -1,3 +1,4 @@
+from scapy import Raw
 from PacketPayloadAnalyzer import *
 import csv
 
@@ -14,6 +15,18 @@ class PacketPayloadEngine:
         self.sql_analyzer      = self.setup_analyzer("sql_blacklist_rules.csv")
     
     """
+    Method: Validate Packet
+
+    Description:
+        Primary entry point to validate a packet, whether it should be dropped or not
+    """
+    def validate_packet(self, packet) -> bool:
+        drop_payload = False
+        if Raw in packet:
+            drop_payload = self.validate_payload(str(packet[Raw]))
+        return drop_payload
+
+    """
     Method: Validate Payload
 
     Description:
@@ -22,9 +35,8 @@ class PacketPayloadEngine:
     """
     def validate_payload(self, unparsed_str: str) -> bool:
         drop_payload = False
-        # To Do
-        http_request = False
-        if http_request:
+        # Check for http message
+        if "HTTP/" in unparsed_str:
             drop_payload = self.validate_http_payload(unparsed_str)
         
         return drop_payload
@@ -38,14 +50,16 @@ class PacketPayloadEngine:
     """
     def validate_http_payload(self, parsed_str: str) -> bool:
         drop_payload = False
-        # To Do
-        parser_str_lines = list()
+        parser_str_lines = parsed_str.split("\n")
         for line in parser_str_lines:
-            header, preprocessed_str = self.preprocess_http_line(line)
-
+            header, preprocessed_str = self.preprocess_http_line(line, "%")
             if 'GET' == header:
-               weight, words = self.http_get_analyzer(preprocessed_str)
-               drop_payload = weight < self.weight_to_drop_packet_on
+                weight, words = self.http_get_analyzer(preprocessed_str)
+                drop_payload = weight < self.weight_to_drop_packet_on
+            elif 'POST' == header:
+                post_weight, post_words = self.http_get_analyzer(preprocessed_str)
+                sql_weight, sql_words   = self.sql_analyzer(preprocessed_str)
+                drop_payload = ( post_weight + sql_weight ) < self.weight_to_drop_packet_on
 
         return drop_payload
     # end validate_http_payload()
@@ -56,9 +70,93 @@ class PacketPayloadEngine:
     Description:
         Preprocess an http line by grapping the header, and resolving special characters
     """
-    def preprocess_http_line(self, unparsed_line: str) -> tuple:
-        # To Do - need to parse out escape charcter &#20 etc. into normal form
-        return "", unparsed_line
+    def preprocess_http_line(self, unparsed_line: str, escape_char) -> tuple:
+        processed_line = unparsed_line
+        method = ""
+        words = unparsed_line.split(" ")
+        if words[0] == 'GET' or words[0] == 'POST':
+            method = words[0]
+            if len(words > 1):
+                # Parse Special Characters
+                i = 0
+                processed_line = ""
+                line_len = len(words[1])
+                while i < line_len:
+                    next_c = unparsed_line[i]
+                    if unparsed_line[i] == escape_char and i + 2 < line_len:
+                        c_1 = unparsed_line[i + 1]
+                        c_2 = unparsed_line[i + 2]
+                        if c_1 == '2':
+                            if c_2 == '0':
+                                next_c = ' '
+                            elif c_2 == '3':
+                                next_c = '#'
+                            elif c_2 == '4':
+                                next_c = '$'
+                            elif c_2 == '5':
+                                next_c = '%'
+                            elif c_2 == '6':
+                                next_c = '&'
+                            elif c_2.capitalize() == 'B':
+                                next_c = '+'
+                            elif c_2.capitalize() == 'F':
+                                next_c = '/'
+                            else:
+                                i -= 2
+                        elif c_1 == '3':
+                            if c_2.capitalize() == 'A':
+                                next_c = ':'
+                            elif c_2.capitalize() == 'B':
+                                next_c = ';'
+                            elif c_2.capitalize() == 'C':
+                                next_c = '<'
+                            elif c_2.capitalize() == 'D':
+                                next_c = '='
+                            elif c_2.capitalize() == 'E':
+                                next_c = '>'
+                            elif c_2.capitalize() == 'F':
+                                next_c = '?'
+                            else:
+                                i -= 2
+                        elif c_1 == '4':
+                            if c_2 == '0':
+                                next_c = '@'
+                            else:
+                                i -= 2
+                        elif c_1 == '5':
+                            if c_2.capitalize() == 'B':
+                                next_c = '['
+                            elif c_2.capitalize() == 'C':
+                                next_c = '\\'
+                            elif c_2.capitalize() == 'D':
+                                next_c = ']'
+                            elif c_2.capitalize() == 'E':
+                                next_c = '^'
+                            else:
+                                i -= 2
+                        elif c_1 == '6':
+                            if c_2 == '0':
+                                next_c = '`'
+                            else:
+                                i -= 2
+                        elif c_1 == '7':
+                            if c_2.capitalize() == 'B':
+                                next_c = '{'
+                            elif c_2.capitalize() == 'C':
+                                next_c = '|'
+                            elif c_2.capitalize() == 'D':
+                                next_c = '}'
+                            elif c_2.capitalize() == 'E':
+                                next_c = '~'
+                            else:
+                                i -= 2
+                        else:
+                            i -= 2
+                        i += 3
+                    else:
+                        i += 1
+                    processed_line.join(next_c)
+        return method, processed_line
     # end preprocess_http_line()
 
     """
@@ -81,7 +179,8 @@ class PacketPayloadEngine:
             rows = []
             for row in file_reader:
                 rows.append(row)
-                # Parse each row
+            
+            # Parse each row
             word_column = 0
             syntax_column = 2
             i = 0
