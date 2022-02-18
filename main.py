@@ -13,6 +13,7 @@ from scapy.all import *
 import iptc
 from PacketPayloadAnalyzer import *
 from PacketPayloadEngine import *
+import NetworkTool
 
 def main():
     print("Firewall starting up...")
