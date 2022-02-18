@@ -60,20 +60,19 @@ class PacketPayloadEngine:
         for line in parser_str_lines:
             header, preprocessed_str = self.preprocess_http_line(line, "%")
 
-            if 'GET' == header:
+            if "GET" == header:
                 weight, words = self.http_get_analyzer.analyze(preprocessed_str)
-                drop_payload = weight < self.weight_to_drop_packet_on
+                drop_payload = weight > self.weight_to_drop_packet_on or drop_payload
                 if drop_payload:
                     str_words = str(words)
-                    message = "SUSPICIOUS PACKET! HTTP GET: Weight = {weight}: Suspicious packet content: {str_words}"
+                    message = message + f"\nSUSPICIOUS PACKET! HTTP GET: Weight = {weight}: Suspicious packet content: {str_words}"
 
-            elif 'POST' == header:
+            elif "POST" == header:
                 post_weight, post_words = self.http_get_analyzer.analyze(preprocessed_str)
-                sql_weight, sql_words = self.sql_analyzer.analyze(preprocessed_str)
-                drop_payload = (post_weight + sql_weight) < self.weight_to_drop_packet_on
+                sql_weight, sql_words   = self.sql_analyzer.analyze(preprocessed_str)
+                drop_payload = ( post_weight + sql_weight ) > self.weight_to_drop_packet_on
                 str_words = str(post_words) + str(sql_words)
-                message = "SUSPICIOUS PACKET! HTTP POST: Post Weight, SQL Weight = {post_weight},{sql_weight}: " \
-                          "content: {str_words} "
+                message = message + f"\nSUSPICIOUS PACKET! HTTP POST: Post Weight, SQL Weight = {post_weight},{sql_weight}: content: {str_words}"
 
         return drop_payload, message
 
@@ -183,7 +182,8 @@ class PacketPayloadEngine:
 class PacketPayloadEngine_TestSuite:
     def __init__(self):
         success = True
-        # success = self.run_simple_message_test() and success
+        #success = self.run_simple_message_test() and success
+        success = self.run_test_csv_analyzer() and success
         success = self.run_test_http_message_one_line() and success
         if success:
             print("Packet Payload Engine: All Tests Passed.")
@@ -192,6 +192,7 @@ class PacketPayloadEngine_TestSuite:
 
     def run_simple_message_test(self) -> bool:
         success = False
+
         try:
             message = "This is a test 2!"
             bot = Bot()
@@ -200,21 +201,40 @@ class PacketPayloadEngine_TestSuite:
             if IP in pkt:
                 slack_message = str(pkt[IP].src) + ": " + message
             bot.alert_channel(message=slack_message)
+
         except:
             success = False
+
         return success
 
-    @staticmethod
-    def run_test_http_message_one_line() -> bool:
+    def run_test_csv_analyzer(self) -> bool:
         success = True
         test_str = "GET /var/server/password.txt?user=admin HTTP/1.1"
-        expect_test_str_weight = 10 * 4 + 10 + 50 + 10
+        expect_test_str_weight = 10*4 + 2*10 + 50 + 10
         engine = PacketPayloadEngine(weight_to_drop_packet_on=100, dflt_word_weight=10, dflt_syntax_weight=0)
-        weight, message = engine.validate_http_payload(test_str)
+        weight, words = engine.http_get_analyzer.analyze(test_str)
         if expect_test_str_weight != weight:
             success = False
-            print("Expected weight: %d, but received %d" % (expect_test_str_weight, weight))
 
+            print("Expected weight: %d, but recieved %d" % (expect_test_str_weight, weight))
+            print("Found words: %s" % str(words))
+        
+        if success:
+            print("PASS: Test CSV analyzer")
+        else:
+            print("FAIL: Test CSV analyzer")
+        
+        return success
+
+    def run_test_http_message_one_line(self) -> bool:
+        success = True
+        test_str = "/var/server/password.txt?user=admin HTTP/1.1"
+        engine = PacketPayloadEngine(weight_to_drop_packet_on=100, dflt_word_weight=10, dflt_syntax_weight=0)
+        drop_payload, message = engine.validate_http_payload(test_str)
+        if True != drop_payload:
+            print("Failed to drop payload")
+            success = False
+        
         if success:
             print("PASS: Test http message one line")
         else:
