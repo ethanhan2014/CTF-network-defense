@@ -16,7 +16,6 @@ from PacketPayloadAnalyzer import *
 from PacketPayloadEngine import *
 from NetworkTool import NetworkTool
 
-
 def main():
     parser = argparse.ArgumentParser(description="NetworkDefenseTool")
     parser.add_argument(
@@ -30,8 +29,8 @@ def main():
 
     print("Starting up Network Defense Tool...")
     NetworkTool(interface, pcapfile).run()
+    # engineTestSuite = PacketPayloadEngine_TestSuite()
     # testSuite = PacketPayloadAnalyzer_TestSuite()
-
 
 if __name__ == '__main__':
     main()
