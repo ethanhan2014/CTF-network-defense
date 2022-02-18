@@ -30,12 +30,18 @@ class PacketPayloadEngine:
 
     def validate_packet(self, packet) -> tuple:
         """ Primary entry point to validate a packet, whether it should be dropped or not """
-        drop_payload = False
+        send_message = False
         message = ""
         if Raw in packet:
-            drop_payload, message = self.validate_payload(str(packet[Raw]))
+            raw_str = str(packet[Raw])
+            raw_processed_str = raw_str
+            if len(raw_str) > 3:
+                # Raw can sometimes be formatted as 'b DATA ' -- we want to get rid of the b and the singe quotes
+                raw_processed_str = raw_str[2:(len(raw_str) - 1)]
+            drop_payload, message = self.validate_payload(raw_processed_str)
+            send_message = drop_payload
 
-        return drop_payload, message
+        return send_message, message
 
     def validate_payload(self, unparsed_str: str) -> tuple:
         """ Primary function of class, returns a boolean value of whether the packet should be dropped or not """
@@ -192,6 +198,7 @@ class PacketPayloadEngine_TestSuite:
         success = self.run_test_http_preprocess_line() and success
         success = self.run_test_http_message_one_line() and success
         success = self.run_test_payload_one_line() and success
+        success = self.run_test_scapy_packet() and success
 
         if success:
             print("Packet Payload Engine: All Tests Passed.")
@@ -284,5 +291,22 @@ class PacketPayloadEngine_TestSuite:
             print("PASS: Test payload one line")
         else:
             print("FAIL: Test payload one line")
+
+        return success
+
+    def run_test_scapy_packet(self) -> bool:
+        success = True
+        test_str = "GET /var/server/password.txt?user=admin HTTP/1.1"
+        packet = Ether() / IP() / TCP() / Raw(test_str)
+        engine = PacketPayloadEngine(weight_to_drop_packet_on=50, dflt_word_weight=10, dflt_syntax_weight=0)
+        drop_payload, message = engine.validate_packet(packet)
+        if True != drop_payload:
+            print("Failed to drop payload")
+            success = False
+        
+        if success:
+            print("PASS: Test scapy packet")
+        else:
+            print("FAIL: Test scapy packet")
 
         return success
