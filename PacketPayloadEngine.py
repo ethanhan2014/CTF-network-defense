@@ -80,7 +80,6 @@ class PacketPayloadEngine:
 
     def preprocess_http_line(self, unparsed_line: str, escape_char) -> tuple:
         """ Preprocess an http line by grapping the header, and resolving special characters """
-
         processed_line = unparsed_line
         method = ""
         words = unparsed_line.split(" ")
@@ -92,10 +91,11 @@ class PacketPayloadEngine:
                 processed_line = ""
                 line_len = len(words[1])
                 while i < line_len:
-                    next_c = unparsed_line[i]
-                    if unparsed_line[i] == escape_char and i + 2 < line_len:
-                        c_1 = unparsed_line[i + 1]
-                        c_2 = unparsed_line[i + 2].capitalize()  # ignores capitalization when it is a digit
+
+                    next_c = words[1][i]
+                    if words[1][i] == escape_char and i + 2 < line_len:
+                        c_1 = words[1][i + 1]
+                        c_2 = words[1][i + 2].capitalize()  # ignores capitalization when it is a digit
 
                         # shift i if match is not found else get new char
                         if c_1 not in CHAR_MAP:
@@ -110,7 +110,7 @@ class PacketPayloadEngine:
                     else:
                         i += 1
 
-                    processed_line.join(next_c)
+                    processed_line = processed_line + next_c
 
         return method, processed_line
 
@@ -178,12 +178,18 @@ class PacketPayloadEngine:
         return analyzer
     # end setup_analyzer
 
+"""
+
+### TEST CODE ###
+
+"""
 
 class PacketPayloadEngine_TestSuite:
     def __init__(self):
         success = True
         #success = self.run_simple_message_test() and success
         success = self.run_test_csv_analyzer() and success
+        success = self.run_test_http_preprocess_line() and success
         success = self.run_test_http_message_one_line() and success
         if success:
             print("Packet Payload Engine: All Tests Passed.")
@@ -226,10 +232,31 @@ class PacketPayloadEngine_TestSuite:
         
         return success
 
+    def run_test_http_preprocess_line(self) -> bool:
+        success = True
+        test_str_1 = "GET /var/server/password.txt?user=admin HTTP/1.1"
+        engine = PacketPayloadEngine(weight_to_drop_packet_on=100, dflt_word_weight=10, dflt_syntax_weight=0)
+        method, processed_line = engine.preprocess_http_line(test_str_1, "%")
+        if method != "GET":
+            success = False
+            print("Failed to parse method GET. Recieved %s" % (method))
+
+        if processed_line != "/var/server/password.txt?user=admin":
+            success = False
+            print("Failed to process line unchanged. Recieved %s" %(processed_line))
+
+        if success:
+            print("PASS: Test http preprocess")
+        else:
+            print("FAIL: Test http preprocess")
+        
+        return success
+        
+
     def run_test_http_message_one_line(self) -> bool:
         success = True
-        test_str = "/var/server/password.txt?user=admin HTTP/1.1"
-        engine = PacketPayloadEngine(weight_to_drop_packet_on=100, dflt_word_weight=10, dflt_syntax_weight=0)
+        test_str = "GET /var/server/password.txt?user=admin HTTP/1.1"
+        engine = PacketPayloadEngine(weight_to_drop_packet_on=50, dflt_word_weight=10, dflt_syntax_weight=0)
         drop_payload, message = engine.validate_http_payload(test_str)
         if True != drop_payload:
             print("Failed to drop payload")
