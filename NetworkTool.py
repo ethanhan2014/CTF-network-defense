@@ -1,5 +1,6 @@
 from scapy.all import *
 from PacketPayloadEngine import *
+from message_bot import *
 
 '''
 Class: NetworkTool
@@ -10,9 +11,19 @@ class NetworkTool:
 
     def __init__(self, iface):
         self.iface = iface
+        self.packet_engine = PacketPayloadEngine(weight_to_drop_packet_on=100, dflt_word_weight=10, dflt_syntax_weight=0)
+        self.slack_bot = Bot()
 
     def pkt_callback(self, pkt):
-        pass
+        send_message, message = self.packet_engine.validate_packet(pkt)
+        if send_message:
+            self.send_slack_message(pkt, message)
+
+    def send_slack_message(self, pkt, message):
+        slack_message = message
+        if IP in pkt:
+            slack_message = str(pkt[IP].src) + ": " + message
+        self.slack_bot.alert_channel(message=slack_message)
 
     def run(self):
         sniff(iface=self.iface, prn=self.pkt_callback, store=0)

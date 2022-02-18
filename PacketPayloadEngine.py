@@ -1,6 +1,8 @@
-from scapy import Raw
+from doctest import run_docstring_examples
+from scapy.all import Raw, IP, Ether, TCP
 from PacketPayloadAnalyzer import *
 import csv
+from message_bot import *
 
 class PacketPayloadEngine:
     def __init__(self, weight_to_drop_packet_on, dflt_word_weight, dflt_syntax_weight):
@@ -20,11 +22,12 @@ class PacketPayloadEngine:
     Description:
         Primary entry point to validate a packet, whether it should be dropped or not
     """
-    def validate_packet(self, packet) -> bool:
+    def validate_packet(self, packet) -> tuple:
         drop_payload = False
+        message = ""
         if Raw in packet:
-            drop_payload = self.validate_payload(str(packet[Raw]))
-        return drop_payload
+            drop_payload, message = self.validate_payload(str(packet[Raw]))
+        return drop_payload, message
 
     """
     Method: Validate Payload
@@ -33,13 +36,14 @@ class PacketPayloadEngine:
         Primary function of class, returns a boolean value of whether the packet
         should be dropped or not.
     """
-    def validate_payload(self, unparsed_str: str) -> bool:
+    def validate_payload(self, unparsed_str: str) -> tuple:
         drop_payload = False
+        message = ""
         # Check for http message
         if "HTTP/" in unparsed_str:
-            drop_payload = self.validate_http_payload(unparsed_str)
+            drop_payload, message = self.validate_http_payload(unparsed_str)
         
-        return drop_payload
+        return drop_payload, message
     # end validate_payload()
 
     """
@@ -48,20 +52,27 @@ class PacketPayloadEngine:
     Description:
         Validates whether http payload is okay
     """
-    def validate_http_payload(self, parsed_str: str) -> bool:
+    def validate_http_payload(self, parsed_str: str) -> tuple:
         drop_payload = False
+        message = ""
+
         parser_str_lines = parsed_str.split("\n")
         for line in parser_str_lines:
             header, preprocessed_str = self.preprocess_http_line(line, "%")
             if 'GET' == header:
                 weight, words = self.http_get_analyzer(preprocessed_str)
                 drop_payload = weight < self.weight_to_drop_packet_on
+                if drop_payload:
+                    str_words = str(words)
+                    message = "SUSPICOUS PACKET! HTTP GET: Weight = {weight}: Sucpicious packet content: {str_words}"
             elif 'POST' == header:
                 post_weight, post_words = self.http_get_analyzer(preprocessed_str)
                 sql_weight, sql_words   = self.sql_analyzer(preprocessed_str)
                 drop_payload = ( post_weight + sql_weight ) < self.weight_to_drop_packet_on
+                str_words = str(post_words) + str(sql_words)
+                message = "SUSPICOUS PACKET! HTTP POST: Post Weight, SQL Weight = {post_weight},{sql_weight}: content: {str_words}"
 
-        return drop_payload
+        return drop_payload, message
     # end validate_http_payload()
 
     """
@@ -225,3 +236,26 @@ class PacketPayloadEngine:
         analyzer.load_word_dictionary(words)
         return analyzer
     # end setup_analyzer
+
+class PacketPayloadEngine_TestSuite:
+    def __init__(self):
+        success = True
+        success = self.run_simple_message_test() and success
+        if success:
+            print("Packet Payload Engine: All Tests Passed.")
+        else:
+            print("Packet Payload Engine: Tests Failed")
+
+    def run_simple_message_test(self) -> bool:
+        success = False
+        try:
+            message = "This is a test 2!"
+            bot = Bot()
+            pkt = Ether() / IP(src="10.0.0.2")
+            slack_message = message
+            if IP in pkt:
+                slack_message = str(pkt[IP].src) + ": " + message
+            bot.alert_channel(message=slack_message)
+        except:
+            success = False
+        return success

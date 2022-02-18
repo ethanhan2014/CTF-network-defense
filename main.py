@@ -18,6 +18,7 @@ import NetworkTool
 def main():
     print("Firewall starting up...")
     NetworkTool().run()
+    #engineTestSuite = PacketPayloadEngine_TestSuite()
     #testSuite = PacketPayloadAnalyzer_TestSuite()
 
 if __name__ == '__main__':
