@@ -1,6 +1,6 @@
 from scapy.all import *
-from PacketPayloadEngine import *
-from message_bot import *
+from PacketPayloadEngine import PacketPayloadEngine
+from message_bot import Bot
 
 '''
 Class: NetworkTool
@@ -13,8 +13,8 @@ class NetworkTool:
     def __init__(self, iface, pcapfile):
         self.iface = iface
         self.pcapfile = pcapfile
-        self.packet_engine = PacketPayloadEngine(weight_to_drop_packet_on=100, dflt_word_weight=10, dflt_syntax_weight=0)
         self.slack_bot = Bot()
+        self.packet_engine = PacketPayloadEngine(weight_to_drop_packet_on=100, dflt_word_weight=10, dflt_syntax_weight=0)
 
     def pkt_callback(self, pkt):
         "write pkt into pcap file"
