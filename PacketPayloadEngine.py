@@ -97,7 +97,7 @@ class PacketPayloadEngine:
                         c_1 = unparsed_line[i + 1]
                         c_2 = unparsed_line[i + 2].capitalize()  # ignores capitalization when it is a digit
 
-                        # shift i if match is found
+                        # shift i if match is not found else get new char
                         if c_1 not in CHAR_MAP:
                             i -= 2
                         else:
