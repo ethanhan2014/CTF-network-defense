@@ -59,18 +59,18 @@ class PacketPayloadEngine:
         parser_str_lines = parsed_str.split("\n")
         for line in parser_str_lines:
             header, preprocessed_str = self.preprocess_http_line(line, "%")
-            if 'GET' == header:
+            if "GET" == header:
                 weight, words = self.http_get_analyzer.analyze(preprocessed_str)
-                drop_payload = weight < self.weight_to_drop_packet_on
+                drop_payload = weight > self.weight_to_drop_packet_on or drop_payload
                 if drop_payload:
                     str_words = str(words)
-                    message = "SUSPICOUS PACKET! HTTP GET: Weight = {weight}: Sucpicious packet content: {str_words}"
-            elif 'POST' == header:
+                    message = message + "\nSUSPICOUS PACKET! HTTP GET: Weight = {}: Sucpicious packet content: {}".format(weight, str_words)
+            elif "POST" == header:
                 post_weight, post_words = self.http_get_analyzer.analyze(preprocessed_str)
                 sql_weight, sql_words   = self.sql_analyzer.analyze(preprocessed_str)
-                drop_payload = ( post_weight + sql_weight ) < self.weight_to_drop_packet_on
+                drop_payload = ( post_weight + sql_weight ) > self.weight_to_drop_packet_on
                 str_words = str(post_words) + str(sql_words)
-                message = "SUSPICOUS PACKET! HTTP POST: Post Weight, SQL Weight = {post_weight},{sql_weight}: content: {str_words}"
+                message = message + "\nSUSPICOUS PACKET! HTTP POST: Post Weight, SQL Weight = {},{}: content: {}".format(post_weight, sql_weight, str_words)
 
         return drop_payload, message
     # end validate_http_payload()
@@ -282,13 +282,12 @@ class PacketPayloadEngine_TestSuite:
 
     def run_test_http_message_one_line(self) -> bool:
         success = True
-        test_str = "GET /var/server/password.txt?user=admin HTTP/1.1"
-        expect_test_str_weight = 10*4 + 2*10 + 50 + 10
+        test_str = "/var/server/password.txt?user=admin HTTP/1.1"
         engine = PacketPayloadEngine(weight_to_drop_packet_on=100, dflt_word_weight=10, dflt_syntax_weight=0)
-        weight, message = engine.validate_http_payload(test_str)
-        if expect_test_str_weight != weight:
+        drop_payload, message = engine.validate_http_payload(test_str)
+        if True != drop_payload:
+            print("Failed to drop payload")
             success = False
-            print("Expected weight: %d, but recieved %d" % (expect_test_str_weight, weight))
         
         if success:
             print("PASS: Test http message one line")
