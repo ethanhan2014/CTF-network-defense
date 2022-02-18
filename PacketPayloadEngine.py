@@ -191,6 +191,8 @@ class PacketPayloadEngine_TestSuite:
         success = self.run_test_csv_analyzer() and success
         success = self.run_test_http_preprocess_line() and success
         success = self.run_test_http_message_one_line() and success
+        success = self.run_test_payload_one_line() and success
+
         if success:
             print("Packet Payload Engine: All Tests Passed.")
         else:
@@ -266,5 +268,21 @@ class PacketPayloadEngine_TestSuite:
             print("PASS: Test http message one line")
         else:
             print("FAIL: Test http message one line")
+
+        return success
+
+    def run_test_payload_one_line(self) -> bool:
+        success = True
+        test_str = "GET /var/server/password.txt?user=admin HTTP/1.1"
+        engine = PacketPayloadEngine(weight_to_drop_packet_on=50, dflt_word_weight=10, dflt_syntax_weight=0)
+        drop_payload, message = engine.validate_payload(test_str)
+        if True != drop_payload:
+            print("Failed to drop payload")
+            success = False
+        
+        if success:
+            print("PASS: Test payload one line")
+        else:
+            print("FAIL: Test payload one line")
 
         return success
