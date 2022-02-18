@@ -14,7 +14,7 @@ import argparse
 import iptc
 from PacketPayloadAnalyzer import *
 from PacketPayloadEngine import *
-from NetworkTool import NetworkTool
+from NetworkTool import *
 
 def main():
     parser = argparse.ArgumentParser(description="NetworkDefenseTool")
@@ -29,6 +29,7 @@ def main():
 
     print("Starting up Network Defense Tool...")
     NetworkTool(interface, pcapfile).run()
+    # networkTestSuite = NetworkTool_TestSuite()
     # engineTestSuite = PacketPayloadEngine_TestSuite()
     # testSuite = PacketPayloadAnalyzer_TestSuite()
 
