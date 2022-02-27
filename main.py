@@ -11,10 +11,10 @@ Description:
 
 from scapy.all import *
 import argparse
-import iptc
 from PacketPayloadAnalyzer import *
 from PacketPayloadEngine import *
 from NetworkTool import *
+from IptableSetup import *
 
 def main():
     parser = argparse.ArgumentParser(description="NetworkDefenseTool")
@@ -27,6 +27,8 @@ def main():
     interface = str(args.interface)
     pcapfile = str(args.pcapfile)
 
+    print("Configuring initial iptables rules...")
+    IptableSetup().firewall_setup()
     print("Starting up Network Defense Tool...")
     NetworkTool(interface, pcapfile).run()
     # networkTestSuite = NetworkTool_TestSuite()
