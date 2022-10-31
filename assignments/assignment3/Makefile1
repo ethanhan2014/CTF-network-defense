@@ -1,0 +1,12 @@
+# compile python
+
+TARGET = reflector
+
+$(TARGET): $(TARGET).py
+	cat $< >$@ <<EOF
+	chmod +x $@
+
+.PHONY: clean
+
+clean:
+	$(RM) $(TARGET)

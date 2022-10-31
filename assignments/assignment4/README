@@ -1,0 +1,3 @@
+ssh hanz@cse545-binary.pwn.college
+passwd Hanz12345
+scp -F /dev/null hanz@cse545-binary.pwn.college:/var/challenge/level3/3 .

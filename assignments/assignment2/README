@@ -1,0 +1,5 @@
+Ziyi Han, 1218956661
+This is a simple web server to execute shell commands received from client. After downloading the source code assignment2.tar.gz, run tar -xvf | gzip -u xx to extract source code.
+To compile the program, simply run make and executable normal_web_server will be generated. 
+Next, run ./normal_web_server <port> to start the web server listening on the port specified. Client can send HTTP GET request of /exec/<command> to execute the shell command. After commands are performed successfully at server, server will reply http response with output in the response body. Otherwise, a 404 status code will be returned to the client with error details.
+Finally, to terminate the server program and release the port, you can simply type CTRL+C.
